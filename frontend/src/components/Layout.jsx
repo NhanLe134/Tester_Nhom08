@@ -6,7 +6,7 @@ import { ShoppingCartIcon, BellIcon, UserCircleIcon, ArrowRightOnRectangleIcon }
 const navItems = [
   { to: '/', label: 'Tổng quan', end: true },
   { to: '/hang-hoa', label: 'Hàng hóa' },
-  { to: '/ban-hang', label: 'Bán hàng' },
+  { to: '/hoa-don', label: 'Bán hàng' },
   { to: '/bao-cao', label: 'Báo cáo' },
   { to: '/tai-khoan', label: 'Tài khoản' },
 ];
