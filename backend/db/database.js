@@ -37,7 +37,8 @@ function initSchema() {
       SL_TON INTEGER DEFAULT 0,
       DMUC_TON_MIN INTEGER DEFAULT 0,
       TRANGTHAI_SP TEXT DEFAULT 'Đang bán',
-      HINHANH TEXT
+      HINHANH TEXT,
+      NGAYTAO TEXT DEFAULT (datetime('now','localtime'))
     );
 
     CREATE TABLE IF NOT EXISTS HOADONBAN (
@@ -61,6 +62,15 @@ function initSchema() {
       FOREIGN KEY (MASP) REFERENCES HANGHOA(MASP)
     );
   `);
+
+  try {
+    const hasCol = db.prepare("SELECT COUNT(*) AS cnt FROM pragma_table_info('HANGHOA') WHERE name='NGAYTAO'").get().cnt;
+    if (!hasCol) {
+      db.exec("ALTER TABLE HANGHOA ADD COLUMN NGAYTAO TEXT DEFAULT (datetime('now','localtime'))");
+    }
+  } catch (e) {
+    console.error('Migration failed:', e);
+  }
 }
 
 function generateMASP() {

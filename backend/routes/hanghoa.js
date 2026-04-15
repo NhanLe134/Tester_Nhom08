@@ -25,7 +25,7 @@ router.get('/', auth, (req, res) => {
   const params = [];
 
   if (search) {
-    where += ' AND (TENSP LIKE ? OR MASP LIKE ?)';
+    where += ' AND (LOWER(TENSP) LIKE LOWER(?) OR LOWER(MASP) LIKE LOWER(?))';
     params.push(`%${search}%`, `%${search}%`);
   }
   if (trangthai) {
@@ -44,7 +44,7 @@ router.get('/', auth, (req, res) => {
   }
 
   const total = db.prepare(`SELECT COUNT(*) as cnt FROM HANGHOA ${where}`).get(...params).cnt;
-  const items = db.prepare(`SELECT * FROM HANGHOA ${where} ORDER BY MASP LIMIT ? OFFSET ?`).all(...params, parseInt(limit), offset);
+  const items = db.prepare(`SELECT * FROM HANGHOA ${where} ORDER BY NGAYTAO DESC, MASP DESC LIMIT ? OFFSET ?`).all(...params, parseInt(limit), offset);
 
   res.json({ items, total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) });
 });
@@ -99,7 +99,27 @@ router.put('/:masp', auth, upload.single('hinhanh'), (req, res) => {
   const existing = db.prepare('SELECT * FROM HANGHOA WHERE MASP = ?').get(req.params.masp);
   if (!existing) return res.status(404).json({ message: 'Không tìm thấy hàng hóa' });
 
-  const { TENSP, DVT, GIABAN, GIANHAP, SL_TON, DMUC_TON_MIN, TRANGTHAI_SP } = req.body;
+  let { TENSP, DVT, GIABAN, GIANHAP, SL_TON, DMUC_TON_MIN, TRANGTHAI_SP } = req.body;
+
+  // Rule 5.1: Kiểm tra trùng tên (trừ sản phẩm hiện tại)
+  if (TENSP && TENSP.toLowerCase() !== existing.TENSP.toLowerCase()) {
+    const duplicate = db.prepare(`SELECT MASP FROM HANGHOA WHERE LOWER(TENSP) = LOWER(?) AND MASP <> ? AND TRANGTHAI_SP = 'Đang bán'`).get(TENSP, req.params.masp);
+    if (duplicate) return res.status(400).json({ message: 'Hàng hóa đã tồn tại' });
+  }
+
+  // Parse and validate numbers
+  const newGianhap = GIANHAP !== undefined ? parseFloat(GIANHAP) : existing.GIANHAP;
+  if (newGianhap <= 0) return res.status(400).json({ message: 'Giá vốn phải là số dương' });
+  
+  const newSlTon = SL_TON !== undefined ? parseInt(SL_TON) : existing.SL_TON;
+  if (newSlTon < 0) return res.status(400).json({ message: 'Tồn kho phải là số không âm' });
+
+  const newDmuc = DMUC_TON_MIN !== undefined ? parseInt(DMUC_TON_MIN) : existing.DMUC_TON_MIN;
+  if (newDmuc < 0) return res.status(400).json({ message: 'Định mức tồn kho tối thiểu phải là số không âm' });
+
+  // Rule 5.3: Tính lại giá bán
+  const newGiaban = newGianhap * 1.3;
+
   const HINHANH = req.file ? `/uploads/${req.file.filename}` : existing.HINHANH;
 
   db.prepare(`
@@ -108,10 +128,10 @@ router.put('/:masp', auth, upload.single('hinhanh'), (req, res) => {
   `).run(
     TENSP || existing.TENSP,
     DVT || existing.DVT,
-    parseFloat(GIABAN) ?? existing.GIABAN,
-    parseFloat(GIANHAP) ?? existing.GIANHAP,
-    parseInt(SL_TON) ?? existing.SL_TON,
-    parseInt(DMUC_TON_MIN) ?? existing.DMUC_TON_MIN,
+    newGiaban,
+    newGianhap,
+    newSlTon,
+    newDmuc,
     TRANGTHAI_SP || existing.TRANGTHAI_SP,
     HINHANH,
     req.params.masp
