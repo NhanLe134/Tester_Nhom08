@@ -125,11 +125,25 @@ async function transaction(callback) {
   }
 }
 
+// Helper to convert PostgreSQL lowercase columns to uppercase for frontend compatibility
+function toUppercaseKeys(obj) {
+  if (!obj) return obj;
+  if (Array.isArray(obj)) return obj.map(toUppercaseKeys);
+  if (typeof obj !== 'object') return obj;
+  
+  const result = {};
+  for (const key in obj) {
+    result[key.toUpperCase()] = obj[key];
+  }
+  return result;
+}
+
 module.exports = { 
   getPool, 
   initSchema, 
   generateMASP, 
   generateMAHDB, 
   generateMATK, 
-  transaction 
+  transaction,
+  toUppercaseKeys
 };

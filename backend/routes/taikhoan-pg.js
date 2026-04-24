@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
-const { getPool } = require('../db/database-pg');
+const { getPool, toUppercaseKeys } = require('../db/database-pg');
 
 // GET /api/taikhoan/me
 router.get('/me', auth, async (req, res) => {
@@ -12,7 +12,7 @@ router.get('/me', auth, async (req, res) => {
     const user = result.rows[0];
     
     if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
-    res.json(user);
+    res.json(toUppercaseKeys(user));
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
@@ -28,7 +28,7 @@ router.put('/me', auth, async (req, res) => {
     await pool.query('UPDATE taikhoan SET tenht = $1, sdt = $2 WHERE matk = $3', [tenht, sdt, req.user.matk]);
     
     const result = await pool.query('SELECT matk, tendn, sdt, tenht FROM taikhoan WHERE matk = $1', [req.user.matk]);
-    res.json(result.rows[0]);
+    res.json(toUppercaseKeys(result.rows[0]));
   } catch (error) {
     console.error('Update user error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { getPool } = require('../db/database-pg');
+const { getPool, toUppercaseKeys } = require('../db/database-pg');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -68,7 +68,7 @@ router.get('/', auth, async (req, res) => {
     );
 
     res.json({ 
-      items: itemsResult.rows, 
+      items: toUppercaseKeys(itemsResult.rows), 
       total, 
       page: parseInt(page), 
       limit: parseInt(limit), 
@@ -86,7 +86,7 @@ router.get('/:masp', auth, async (req, res) => {
     const pool = getPool();
     const result = await pool.query('SELECT * FROM hanghoa WHERE masp = $1', [req.params.masp]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Không tìm thấy hàng hóa' });
-    res.json(result.rows[0]);
+    res.json(toUppercaseKeys(result.rows[0]));
   } catch (error) {
     console.error('Get hanghoa by ID error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
@@ -130,7 +130,7 @@ router.post('/', auth, upload.single('hinhanh'), async (req, res) => {
     `, [MASP, TENSP, DVT || 'Cái', GIABAN, GIANHAP, SL_TON, DMUC_TON_MIN, TRANGTHAI_SP || 'Đang bán', HINHANH]);
 
     const createdResult = await pool.query('SELECT * FROM hanghoa WHERE masp = $1', [MASP]);
-    res.status(201).json(createdResult.rows[0]);
+    res.status(201).json(toUppercaseKeys(createdResult.rows[0]));
   } catch (error) {
     console.error('Create hanghoa error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
@@ -187,7 +187,7 @@ router.put('/:masp', auth, upload.single('hinhanh'), async (req, res) => {
     ]);
 
     const updatedResult = await pool.query('SELECT * FROM hanghoa WHERE masp = $1', [req.params.masp]);
-    res.json(updatedResult.rows[0]);
+    res.json(toUppercaseKeys(updatedResult.rows[0]));
   } catch (error) {
     console.error('Update hanghoa error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
@@ -221,7 +221,7 @@ router.get('/:masp/tonkho', auth, async (req, res) => {
       ORDER BY h.ngayban DESC
       LIMIT 50
     `, [req.params.masp]);
-    res.json(result.rows);
+    res.json(toUppercaseKeys(result.rows));
   } catch (error) {
     console.error('Get tonkho error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });

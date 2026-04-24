@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { getPool } = require('../db/database-pg');
+const { getPool, toUppercaseKeys } = require('../db/database-pg');
 
 // Helper function to generate MAHDB
 async function generateMAHDB() {
@@ -68,7 +68,7 @@ router.get('/', auth, async (req, res) => {
     );
 
     res.json({ 
-      items: itemsResult.rows, 
+      items: toUppercaseKeys(itemsResult.rows), 
       total, 
       page: parseInt(page), 
       limit: parseInt(limit), 
@@ -94,7 +94,7 @@ router.get('/:mahdb', auth, async (req, res) => {
       WHERE ct.mahdb = $1
     `, [req.params.mahdb]);
 
-    res.json({ ...hdbResult.rows[0], items: itemsResult.rows });
+    res.json({ ...toUppercaseKeys(hdbResult.rows[0]), items: toUppercaseKeys(itemsResult.rows) });
   } catch (error) {
     console.error('Get hoadonban by ID error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
@@ -165,7 +165,7 @@ router.post('/', auth, async (req, res) => {
       WHERE ct.mahdb = $1
     `, [MAHDB]);
 
-    res.status(201).json({ ...createdResult.rows[0], items: createdItemsResult.rows });
+    res.status(201).json({ ...toUppercaseKeys(createdResult.rows[0]), items: toUppercaseKeys(createdItemsResult.rows) });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Create hoadonban error:', error);

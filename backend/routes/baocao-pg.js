@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { getPool } = require('../db/database-pg');
+const { getPool, toUppercaseKeys } = require('../db/database-pg');
 
 // GET /api/baocao/doanhthu?tungay=&denngay=
 router.get('/doanhthu', auth, async (req, res) => {
@@ -124,7 +124,7 @@ router.get('/doanhthu/detail', auth, async (req, res) => {
       ORDER BY ngayban ASC
     `, [ngay]);
     
-    res.json({ rows: result.rows });
+    res.json({ rows: toUppercaseKeys(result.rows) });
   } catch (error) {
     console.error('Báo cáo doanh thu detail error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
@@ -147,7 +147,7 @@ router.get('/hanghoa/detail', auth, async (req, res) => {
       ORDER BY h.ngayban ASC
     `, [masp, tungay || '2000-01-01', denngay || '2099-12-31']);
     
-    res.json({ rows: result.rows });
+    res.json({ rows: toUppercaseKeys(result.rows) });
   } catch (error) {
     console.error('Báo cáo hàng hóa detail error:', error);
     res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
