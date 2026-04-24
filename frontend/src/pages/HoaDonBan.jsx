@@ -408,7 +408,7 @@ export default function HoaDonBan() {
       setItems(res.data.items);
       setTotal(res.data.total);
       setTotalPages(res.data.totalPages);
-      const sum = res.data.totalAmount ?? res.data.items.reduce((acc, i) => acc + (i.TONGTIENHANG_BAN || 0), 0);
+      const sum = res.data.totalAmount ?? res.data.items.reduce((acc, i) => acc + (parseFloat(i.TONGTIENHANG_BAN) || 0), 0);
       setTotalAmount(sum);
     } catch { toast.error('Lỗi tải dữ liệu'); }
     finally { setLoading(false); }
