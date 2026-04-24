@@ -10,7 +10,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: [
     'http://localhost:5173',                                    // Local development
-    process.env.FRONTEND_URL || 'https://tester-nhom08.vercel.app' // Production
+    'https://tester-nhom08.vercel.app',                        // Vercel production
+    'https://tester-nhom08-delta.vercel.app',                  // Vercel preview
+    process.env.FRONTEND_URL || 'https://tester-nhom08.vercel.app' // From env
   ],
   credentials: true
 }));
