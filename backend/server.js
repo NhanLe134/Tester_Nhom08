@@ -41,6 +41,24 @@ app.use('/api/taikhoan', require('./routes/taikhoan'));
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
+// Root route for testing
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Tạp Hóa Nga API',
+    status: 'running',
+    database: 'SQLite',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      products: '/api/hanghoa',
+      invoices: '/api/hoadonban',
+      reports: '/api/baocao',
+      accounts: '/api/taikhoan'
+    },
+    docs: 'https://github.com/NhanLe134/Tester_Nhom08'
+  });
+});
+
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
