@@ -230,26 +230,37 @@ function ExpandedInvoice({ invoice, onCancelled }) {
 
   const saveNote = async () => {
     setSaving(true);
-    try { await api.put(`/hoadonban/${invoice.MAHDB}/ghichu`, { ghichu }); toast.success('Đã lưu ghi chú'); }
-    catch { toast.error('Lỗi lưu ghi chú'); } finally { setSaving(false); }
+    try { 
+      await api.put(`/hoadonban/${invoice.MAHDB}/ghichu`, { ghichu }); 
+      toast.success(`Hóa đơn ${invoice.MAHDB} đã cập nhật thành công`); 
+    }
+    catch { 
+      toast.error('Cập nhật thất bại. Vui lòng thử lại sau.'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const cancelInvoice = async () => {
     setCancelling(true);
     try {
       await api.put(`/hoadonban/${invoice.MAHDB}/huy`);
-      toast.success('Đã hủy hóa đơn'); setShowCancel(false); onCancelled();
-    } catch (err) { toast.error(err.response?.data?.message || 'Lỗi hủy hóa đơn'); }
+      toast.success(`Hủy hóa đơn ${invoice.MAHDB} thành công`); 
+      setShowCancel(false); 
+      onCancelled();
+    } catch (err) { 
+      toast.error(`Có lỗi xảy ra. Hủy hóa đơn ${invoice.MAHDB} thất bại`); 
+    }
     finally { setCancelling(false); }
   };
 
-  if (loading) return <tr><td colSpan={3} className="py-4 text-center text-gray-400 bg-green-50">Đang tải...</td></tr>;
+  if (loading) return <tr><td colSpan={4} className="py-4 text-center text-gray-400 bg-green-50">Đang tải...</td></tr>;
 
   const tongTien = detail?.TONGTIENHANG_BAN || 0;
 
   return (
     <tr>
-      <td colSpan={3} className="bg-white border-b border-gray-100 px-6 py-4">
+      <td colSpan={4} className="bg-white border-b border-gray-100 px-6 py-4">
         {/* Tab */}
         <div className="border-b border-gray-200 mb-4">
           <span className="inline-block text-sm font-semibold text-blue-500 border-b-2 border-blue-500 pb-2 pr-4">Thông tin</span>
@@ -279,6 +290,7 @@ function ExpandedInvoice({ invoice, onCancelled }) {
               <th className="text-left py-2 px-3 font-semibold text-gray-700">Tên hàng</th>
               <th className="text-right py-2 px-3 font-semibold text-gray-700">Số lượng</th>
               <th className="text-right py-2 px-3 font-semibold text-gray-700">Đơn giá</th>
+              <th className="text-right py-2 px-3 font-semibold text-gray-700">Giá bán</th>
               <th className="text-right py-2 px-3 font-semibold text-gray-700">Thành tiền</th>
             </tr>
           </thead>
@@ -288,6 +300,7 @@ function ExpandedInvoice({ invoice, onCancelled }) {
                 <td className="py-2.5 px-3 text-sm text-gray-500">{i.MASP}</td>
                 <td className="py-2.5 px-3 text-gray-800">{i.TENSP}</td>
                 <td className="py-2.5 px-3 text-right text-gray-700">{i.SOLUONG}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{fmtCurrency(i.GIABAN)}</td>
                 <td className="py-2.5 px-3 text-right text-gray-700">{fmtCurrency(i.GIABAN)}</td>
                 <td className="py-2.5 px-3 text-right font-semibold text-gray-800">{fmtCurrency(i.SOLUONG * i.GIABAN)}</td>
               </tr>
@@ -309,18 +322,18 @@ function ExpandedInvoice({ invoice, onCancelled }) {
           </div>
 
           {/* Tổng tiền */}
-          <div className="w-64 space-y-1 text-sm">
+          <div className="w-72 space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">Tổng tiền hàng:</span>
-              <span className="text-gray-800">{fmtCurrency(tongTien)}</span>
+              <span className="text-gray-800 font-medium">{fmtCurrency(tongTien)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Khách cần trả:</span>
-              <span className="text-gray-800">{fmtCurrency(tongTien)}</span>
+            <div className="flex justify-between font-bold border-t border-gray-100 pt-1">
+              <span className="text-gray-700">Số tiền khách cần trả:</span>
+              <span className="text-blue-600">{fmtCurrency(tongTien)}</span>
             </div>
             <div className="flex justify-between font-bold">
-              <span className="text-gray-500">Khách đã trả:</span>
-              <span className="text-gray-800">{fmtCurrency(tongTien)}</span>
+              <span className="text-gray-700">Số tiền khách đã trả:</span>
+              <span className="text-green-700">{fmtCurrency(tongTien)}</span>
             </div>
           </div>
         </div>
@@ -410,7 +423,7 @@ export default function HoaDonBan() {
       setTotalPages(res.data.totalPages);
       const sum = res.data.totalAmount ?? res.data.items.reduce((acc, i) => acc + (parseFloat(i.TONGTIENHANG_BAN) || 0), 0);
       setTotalAmount(sum);
-    } catch { toast.error('Lỗi tải dữ liệu'); }
+    } catch { toast.error('Xảy ra lỗi. Không thể lọc danh sách'); }
     finally { setLoading(false); }
   }, [page, search, filterStatus, filterPTTT, tungay, denngay]);
 
@@ -523,7 +536,7 @@ export default function HoaDonBan() {
               <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 shrink-0" />
               <input
                 className="flex-1 text-sm focus:outline-none bg-transparent placeholder-gray-400"
-                placeholder="Tìm kiếm theo mã hóa đơn"
+                placeholder="Tìm kiếm theo mã HĐ, tên hàng, mã hàng"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { setPage(1); setShowFilterBox(false); } }}
@@ -568,21 +581,23 @@ export default function HoaDonBan() {
               <tr className="bg-green-100">
                 <th className="text-left py-3 px-6 font-bold text-gray-800">Mã hóa đơn</th>
                 <th className="text-left py-3 px-6 font-bold text-gray-800">Thời gian</th>
+                <th className="text-left py-3 px-6 font-bold text-gray-800">Trạng thái</th>
                 <th className="text-right py-3 px-6 font-bold text-gray-800">Tổng tiền hàng</th>
               </tr>
             </thead>
             <tbody>
               {!loading && items.length > 0 && (
-                <tr className="border-b border-gray-100">
+                <tr className="border-b border-gray-100 bg-gray-50/50">
                   <td className="py-3 px-6"></td>
                   <td className="py-3 px-6"></td>
-                  <td className="py-3 px-6 text-right font-bold text-gray-800">{fmtCurrency(totalAmount)}</td>
+                  <td className="py-3 px-6 text-right text-gray-500 font-medium">Tổng cộng:</td>
+                  <td className="py-3 px-6 text-right font-bold text-green-700">{fmtCurrency(totalAmount)}</td>
                 </tr>
               )}
               {loading ? (
-                <tr><td colSpan={3} className="text-center py-12 text-gray-400">Đang tải...</td></tr>
+                <tr><td colSpan={4} className="text-center py-12 text-gray-400">Đang tải...</td></tr>
               ) : items.length === 0 ? (
-                <tr><td colSpan={3} className="text-center py-12 text-gray-400">Không có hóa đơn nào</td></tr>
+                <tr><td colSpan={4} className="text-center py-12 text-gray-400">Không tìm thấy giao dịch phù hợp</td></tr>
               ) : items.map(inv => (
                 <React.Fragment key={inv.MAHDB}>
                   <tr
@@ -591,7 +606,12 @@ export default function HoaDonBan() {
                   >
                     <td className="py-3 px-6 text-gray-700">{inv.MAHDB}</td>
                     <td className="py-3 px-6 text-gray-600">{fmtDate(inv.NGAYBAN)}</td>
-                    <td className="py-3 px-6 text-right text-gray-700">{fmtCurrency(inv.TONGTIENHANG_BAN)}</td>
+                    <td className="py-3 px-6">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${inv.TRANGTHAI_HDB === 'Hoàn thành' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                        {inv.TRANGTHAI_HDB}
+                      </span>
+                    </td>
+                    <td className="py-3 px-6 text-right text-gray-700 font-medium">{fmtCurrency(inv.TONGTIENHANG_BAN)}</td>
                   </tr>
                   {expandedRow === inv.MAHDB && (
                     <ExpandedInvoice invoice={inv} onCancelled={() => { setExpandedRow(null); load(); }} />

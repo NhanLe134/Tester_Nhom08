@@ -61,22 +61,46 @@ export default function BanHang() {
   };
 
   const addItem = (product) => {
+    // Business Rule: Không được bán hàng khi tồn kho = 0.
+    if (product.SL_TON <= 0) {
+      toast.error('Sản phẩm đã hết hàng!');
+      return;
+    }
     updateTab(activeTab, (tab) => {
       const existing = tab.items.find(i => i.MASP === product.MASP);
       if (existing) {
         return { items: tab.items.map(i => i.MASP === product.MASP ? { ...i, SOLUONG: i.SOLUONG + 1 } : i) };
       }
-      return { items: [...tab.items, { MASP: product.MASP, TENSP: product.TENSP, DVT: product.DVT, GIABAN: product.GIABAN, SOLUONG: 1, SL_TON: product.SL_TON }] };
+      return { 
+        items: [...tab.items, { 
+          MASP: product.MASP, 
+          TENSP: product.TENSP, 
+          DVT: product.DVT, 
+          GIABAN: product.GIABAN, 
+          SOLUONG: 1, 
+          SL_TON: product.SL_TON, 
+          DMUC_TON_MIN: product.DMUC_TON_MIN 
+        }] 
+      };
     });
     setSearchQ('');
     setSearchResults([]);
     searchRef.current?.focus();
   };
 
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      addItem(searchResults[0]);
+    }
+  };
+
   const updateQty = (masp, newQty) => {
-    if (newQty < 1) return;
+    // Business Rule: Số lượng bán phải là số nguyên dương.
+    const qty = parseInt(newQty);
+    if (isNaN(qty) || qty < 1) return;
+    
     updateTab(activeTab, (tab) => ({
-      items: tab.items.map(i => i.MASP === masp ? { ...i, SOLUONG: newQty } : i)
+      items: tab.items.map(i => i.MASP === masp ? { ...i, SOLUONG: qty } : i)
     }));
   };
 
@@ -90,7 +114,6 @@ export default function BanHang() {
 
   const handlePay = async () => {
     if (!currentTab?.items.length) return toast.error('Chưa có sản phẩm trong hóa đơn');
-    if (khachTT < total) return toast.error('Khách thanh toán chưa đủ');
     
     setPaying(true);
     try {
@@ -98,11 +121,17 @@ export default function BanHang() {
         items: currentTab.items.map(i => ({ MASP: i.MASP, SOLUONG: i.SOLUONG, GIABAN: i.GIABAN })),
         pttt: currentTab.pttt,
       });
-      setShowInvoice({ ...res.data, khachTT, tienThua, items: currentTab.items });
-      updateTab(activeTab, () => ({ items: [], khachTT: '' }));
+
+      // Handle warnings (Exception 8a)
+      if (res.data.warnings && res.data.warnings.length > 0) {
+        res.data.warnings.forEach(w => toast(w, { icon: '⚠️', duration: 4000 }));
+      }
+
+      setShowInvoice({ ...res.data, items: currentTab.items });
+      updateTab(activeTab, () => ({ items: [], pttt: 'Tiền mặt' }));
       toast.success('Thanh toán thành công!');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi tạo hóa đơn');
+      toast.error(err.response?.data?.message || `Lưu hóa đơn thất bại`);
     } finally {
       setPaying(false);
     }
@@ -114,8 +143,9 @@ export default function BanHang() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="bg-green-600 px-4 py-2 flex items-center justify-between shadow-md">
+      <div className={showInvoice ? 'no-print' : ''}>
+        {/* Header */}
+        <div className="bg-green-600 px-4 py-2 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3 flex-1">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
@@ -123,10 +153,16 @@ export default function BanHang() {
             <input 
               ref={searchRef}
               className="w-full bg-white rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" 
-              placeholder="Tìm kiếm hàng hóa (F7)"
+              placeholder="Quét mã hàng hoặc tìm tên (F7)"
               value={searchQ} 
-              onChange={handleSearchChange} 
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
             />
+            {searchQ.trim() && !searching && searchResults.length === 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-4 text-center text-gray-500 text-sm">
+                Không tìm thấy hàng hóa
+              </div>
+            )}
             {searchResults.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto">
                 {searchResults.map(p => (
@@ -142,11 +178,6 @@ export default function BanHang() {
               </div>
             )}
           </div>
-
-          {/* Sync icon */}
-          <button className="p-2 text-white hover:bg-green-700 rounded-lg transition-colors">
-            <ArrowPathIcon className="w-5 h-5" />
-          </button>
 
           {/* Tabs */}
           <div className="flex items-center gap-1">
@@ -173,9 +204,7 @@ export default function BanHang() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 bg-white text-green-700 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition-colors">
-            Chủ Tiệm Nga
-          </button>
+          <span className="text-white font-medium">Chủ Tiệm</span>
           <button className="p-2 text-white hover:bg-green-700 rounded-lg transition-colors">
             <Bars3Icon className="w-6 h-6" />
           </button>
@@ -214,23 +243,28 @@ export default function BanHang() {
                   </div>
 
                   {/* Quantity controls */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => updateQty(item.MASP, item.SOLUONG - 1)}
-                      className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600 font-bold">
-                      −
-                    </button>
-                    <input 
-                      type="number" 
-                      value={item.SOLUONG}
-                      onChange={(e) => updateQty(item.MASP, parseInt(e.target.value) || 1)}
-                      className="w-12 text-center border border-gray-300 rounded py-1 font-semibold"
-                    />
-                    <button 
-                      onClick={() => updateQty(item.MASP, item.SOLUONG + 1)}
-                      className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600 font-bold">
-                      +
-                    </button>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => updateQty(item.MASP, item.SOLUONG - 1)}
+                        className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600 font-bold">
+                        −
+                      </button>
+                      <input 
+                        type="number" 
+                        value={item.SOLUONG}
+                        onChange={(e) => updateQty(item.MASP, e.target.value)}
+                        className={`w-12 text-center border border-gray-300 rounded py-1 font-semibold ${item.SOLUONG > item.SL_TON ? 'text-red-600 border-red-500' : ''}`}
+                      />
+                      <button 
+                        onClick={() => updateQty(item.MASP, item.SOLUONG + 1)}
+                        className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600 font-bold">
+                        +
+                      </button>
+                    </div>
+                    {item.SOLUONG > item.SL_TON && (
+                      <span className="text-[10px] text-red-500 font-medium">Vượt tồn kho</span>
+                    )}
                   </div>
 
                   {/* Price */}
@@ -262,37 +296,6 @@ export default function BanHang() {
                 <span className="font-bold text-lg text-gray-800 text-right w-24">{fmtCurrency(total)}</span>
               </div>
 
-              {/* Khách cần trả */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-center">
-                <span className="text-gray-600 text-sm">Khách cần trả</span>
-                <span className="w-12"></span>
-                <span className="font-bold text-lg text-blue-600 text-right w-24">{fmtCurrency(total)}</span>
-              </div>
-
-              {/* Khách thanh toán */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-center">
-                <span className="text-gray-600 text-sm">Khách thanh toán</span>
-                <span className="w-12"></span>
-                <div className="w-24 text-right">
-                  <input 
-                    type="text" 
-                    className="w-full border-none bg-transparent text-right font-normal text-base text-gray-400 focus:outline-none focus:text-gray-800 p-0"
-                    placeholder="0"
-                    value={currentTab?.khachTT || ''}
-                    onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      updateTab(activeTab, () => ({ khachTT: val }));
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Tiền trả khách */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-center">
-                <span className="text-gray-600 text-sm">Tiền trả khách</span>
-                <span className="w-12"></span>
-                <span className="font-bold text-lg text-blue-600 text-right w-24">{fmtCurrency(Math.max(0, tienThua))}</span>
-              </div>
 
               {/* Payment method */}
               <div className="pt-3">
@@ -317,7 +320,7 @@ export default function BanHang() {
                       onChange={() => updateTab(activeTab, () => ({ pttt: 'Chuyển khoản' }))}
                       className="w-5 h-5 text-blue-600 focus:ring-blue-500 cursor-pointer" 
                     />
-                    <span className="text-sm text-gray-700">Chuyển khoản</span>
+                    <span className="text-sm text-gray-700">Chuyển khoản (QR)</span>
                   </label>
                 </div>
               </div>
@@ -335,12 +338,13 @@ export default function BanHang() {
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Invoice modal */}
+    {/* Invoice modal */}
       {showInvoice && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-6 border-b flex items-center justify-between">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:p-0 print:static print:bg-white">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md print:shadow-none print:max-w-none print:w-[80mm] print:mx-auto">
+            <div className="p-6 border-b flex items-center justify-between no-print">
               <h3 className="font-bold text-lg">Hóa đơn bán hàng</h3>
               <button onClick={() => setShowInvoice(null)}>
                 <XMarkIcon className="w-5 h-5 text-gray-400 hover:text-gray-600" />
@@ -381,26 +385,18 @@ export default function BanHang() {
                   <span className="text-green-700">{fmtCurrency(showInvoice.TONGTIENHANG_BAN)}</span>
                 </div>
                 <div className="flex justify-between text-gray-500">
-                  <span>Khách trả:</span>
-                  <span>{fmtCurrency(showInvoice.khachTT)}</span>
-                </div>
-                <div className="flex justify-between text-gray-500">
-                  <span>Tiền thừa:</span>
-                  <span>{fmtCurrency(Math.max(0, showInvoice.tienThua))}</span>
-                </div>
-                <div className="flex justify-between text-gray-500">
                   <span>Thanh toán:</span>
                   <span>{showInvoice.PTTT}</span>
                 </div>
               </div>
               <p className="text-center text-xs text-gray-400 border-t pt-3">Cảm ơn quý khách! Hẹn gặp lại 😊</p>
             </div>
-            <div className="p-4 border-t flex gap-3">
+            <div className="p-4 border-t flex gap-3 no-print">
               <button onClick={() => setShowInvoice(null)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors">
                 Đóng
               </button>
               <button onClick={handlePrint} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
-                <PrinterIcon className="w-4 h-4" /> In hóa đơn
+                <PrinterIcon className="w-4 h-4" /> In hóa đơn (P)
               </button>
             </div>
           </div>

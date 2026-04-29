@@ -13,8 +13,13 @@ router.get('/', auth, (req, res) => {
   const params = [];
 
   if (search) {
-    where += ' AND MAHDB LIKE ?';
-    params.push(`%${search}%`);
+    where += ` AND (MAHDB LIKE ? OR EXISTS (
+      SELECT 1 FROM CT_HOADONBAN ct 
+      JOIN HANGHOA hh ON ct.MASP = hh.MASP 
+      WHERE ct.MAHDB = HOADONBAN.MAHDB 
+      AND (hh.TENSP LIKE ? OR hh.MASP LIKE ?)
+    ))`;
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
   if (trangthai) {
     const statuses = trangthai.split(',').map(s => s.trim()).filter(Boolean);
@@ -72,6 +77,9 @@ router.post('/', auth, (req, res) => {
   for (const item of items) {
     const product = db.prepare('SELECT * FROM HANGHOA WHERE MASP = ? AND TRANGTHAI_SP = ?').get(item.MASP, 'Đang bán');
     if (!product) return res.status(400).json({ message: `Sản phẩm ${item.MASP} không tồn tại hoặc đã ngừng bán` });
+    if (product.SL_TON <= 0) {
+      return res.status(400).json({ message: `Sản phẩm "${product.TENSP}" đã hết hàng (tồn kho = 0)` });
+    }
     if (product.SL_TON < item.SOLUONG) {
       return res.status(400).json({ message: `Sản phẩm "${product.TENSP}" không đủ tồn kho (còn ${product.SL_TON})` });
     }
@@ -88,22 +96,32 @@ router.post('/', auth, (req, res) => {
   const insertCT = db.prepare(`INSERT INTO CT_HOADONBAN (MAHDB, MASP, SOLUONG, GIABAN) VALUES (?, ?, ?, ?)`);
   const deductStock = db.prepare(`UPDATE HANGHOA SET SL_TON = SL_TON - ? WHERE MASP = ?`);
 
-  const createInvoice = () => transaction(db, () => {
-    insertHDB.run(MAHDB, req.user.matk, total, NGAYBAN, pttt || 'Tiền mặt', ghichu || null);
-    for (const item of items) {
-      insertCT.run(MAHDB, item.MASP, item.SOLUONG, item.GIABAN);
-      deductStock.run(item.SOLUONG, item.MASP);
-    }
-  });
-
-  createInvoice();
+  try {
+    transaction(db, () => {
+      insertHDB.run(MAHDB, req.user.matk, total, NGAYBAN, pttt || 'Tiền mặt', ghichu || null);
+      for (const item of items) {
+        insertCT.run(MAHDB, item.MASP, item.SOLUONG, item.GIABAN);
+        deductStock.run(item.SOLUONG, item.MASP);
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ message: `Lưu hóa đơn ${MAHDB} thất bại` });
+  }
 
   const created = db.prepare('SELECT * FROM HOADONBAN WHERE MAHDB = ?').get(MAHDB);
   const createdItems = db.prepare(`
-    SELECT ct.*, hh.TENSP, hh.DVT FROM CT_HOADONBAN ct JOIN HANGHOA hh ON ct.MASP = hh.MASP WHERE ct.MAHDB = ?
+    SELECT ct.*, hh.TENSP, hh.DVT, hh.SL_TON, hh.DMUC_TON_MIN 
+    FROM CT_HOADONBAN ct 
+    JOIN HANGHOA hh ON ct.MASP = hh.MASP 
+    WHERE ct.MAHDB = ?
   `).all(MAHDB);
 
-  res.status(201).json({ ...created, items: createdItems });
+  // Check for low inventory warning
+  const warnings = createdItems
+    .filter(i => i.SL_TON < i.DMUC_TON_MIN)
+    .map(i => `Cảnh báo tồn kho dưới định mức tồn: ${i.TENSP} (Còn ${i.SL_TON})`);
+
+  res.status(201).json({ ...created, items: createdItems, warnings });
 });
 
 // PUT /api/hoadonban/:mahdb/ghichu
