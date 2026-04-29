@@ -296,6 +296,13 @@ export default function BanHang() {
                 <span className="font-bold text-lg text-gray-800 text-right w-24">{fmtCurrency(total)}</span>
               </div>
 
+              {/* Khách cần trả */}
+              <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-center">
+                <span className="text-gray-600 text-sm font-semibold">Khách cần trả</span>
+                <span className="w-12"></span>
+                <span className="font-bold text-lg text-blue-600 text-right w-24">{fmtCurrency(total)}</span>
+              </div>
+
 
               {/* Payment method */}
               <div className="pt-3">
@@ -383,6 +390,10 @@ export default function BanHang() {
                 <div className="flex justify-between font-bold text-base">
                   <span>Tổng cộng:</span>
                   <span className="text-green-700">{fmtCurrency(showInvoice.TONGTIENHANG_BAN)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm">
+                  <span>Khách cần trả:</span>
+                  <span>{fmtCurrency(showInvoice.TONGTIENHANG_BAN)}</span>
                 </div>
                 <div className="flex justify-between text-gray-500">
                   <span>Thanh toán:</span>
