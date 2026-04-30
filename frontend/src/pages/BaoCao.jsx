@@ -27,7 +27,6 @@ export default function BaoCao() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState({});
-  const [showPrint, setShowPrint] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,13 +65,13 @@ export default function BaoCao() {
   return (
     <div className="flex flex-col h-full">
       {/* Title */}
-      <h1 className="text-xl font-bold text-gray-800 mb-3">
+      <h1 className="text-xl font-bold text-gray-800 mb-3 no-print">
         {tab === 'doanhthu' ? 'Báo cáo Doanh thu' : 'Báo cáo Hàng hóa'}
       </h1>
 
       <div className="flex gap-4 flex-1 min-h-0">
         {/* LEFT SIDEBAR */}
-        <div className="w-52 flex-shrink-0 space-y-4">
+        <div className="w-52 flex-shrink-0 space-y-4 no-print">
           {/* Mối quan tâm */}
           <div className="border border-gray-300 rounded p-3">
             <p className="text-xs font-semibold text-gray-500 mb-2">Mối quan tâm</p>
@@ -139,7 +138,7 @@ export default function BaoCao() {
         {/* RIGHT CONTENT - "paper" area */}
         <div className="flex-1 bg-gray-200 rounded flex flex-col min-h-0">
           {/* Toolbar: pagination + print */}
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-300 rounded-t">
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-300 rounded-t no-print">
             <div className="flex items-center gap-1">
               <button onClick={() => setPage(1)} disabled={page === 1}
                 className="p-1 rounded hover:bg-gray-400 disabled:opacity-40">«</button>
@@ -157,7 +156,7 @@ export default function BaoCao() {
               <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
                 className="p-1 rounded hover:bg-gray-400 disabled:opacity-40">»</button>
             </div>
-            <button onClick={() => setShowPrint(true)}
+            <button onClick={() => window.print()}
               className="p-1.5 rounded hover:bg-gray-400" title="In báo cáo">
               <PrinterIcon className="w-5 h-5 text-gray-700" />
             </button>
@@ -165,7 +164,7 @@ export default function BaoCao() {
 
           {/* Paper */}
           <div className="flex-1 overflow-auto p-4">
-            <div className="bg-white rounded shadow-sm mx-auto max-w-3xl p-6 min-h-96">
+            <div className="bg-white rounded shadow-sm mx-auto max-w-3xl p-6 min-h-96 print-area">
               {loading ? (
                 <div className="flex items-center justify-center h-48">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
@@ -181,16 +180,6 @@ export default function BaoCao() {
           </div>
         </div>
       </div>
-
-      {/* Print Modal */}
-      {showPrint && (
-        <PrintModal
-          tab={tab}
-          data={data}
-          timeLabel={timeLabel}
-          onClose={() => setShowPrint(false)}
-        />
-      )}
     </div>
   );
 }
@@ -386,121 +375,5 @@ function HangHoaContent({ data, timeLabel, pagedRows, expandedRows, toggleRow, t
         </tbody>
       </table>
     </>
-  );
-}
-
-// ── Print Modal ─────────────────────────────────────────────────────
-function PrintModal({ tab, data, timeLabel, onClose }) {
-  const [printer, setPrinter] = useState('');
-  const [paperSize, setPaperSize] = useState('A4');
-  const [pages, setPages] = useState('Tất cả');
-  const [color, setColor] = useState('Màu');
-
-  const handlePrint = () => {
-    window.print();
-    onClose();
-  };
-
-  const rows = data?.rows || [];
-  const totals = data?.totals;
-
-  return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-2xl flex w-[820px] h-[90vh] overflow-hidden">
-        {/* Preview area (left) */}
-        <div className="flex-1 bg-gray-300 p-4 flex flex-col overflow-hidden">
-          <div className="bg-white shadow p-6 flex-1 overflow-auto text-xs">
-            <h2 className="text-center font-bold text-base mb-1">
-              {tab === 'doanhthu' ? 'Báo cáo Doanh Thu' : 'Báo cáo Hàng hóa'}
-            </h2>
-            <p className="text-center text-gray-500 mb-4">Thời gian: {timeLabel}</p>
-
-            {tab === 'doanhthu' ? (
-              <table className="w-full border border-gray-300 text-xs">
-                <thead>
-                  <tr className="bg-green-100">
-                    <th className="border border-gray-300 py-1 px-2 text-left">Thời gian</th>
-                    <th className="border border-gray-300 py-1 px-2 text-right">Doanh thu</th>
-                    <th className="border border-gray-300 py-1 px-2 text-right">Giá trị trả</th>
-                    <th className="border border-gray-300 py-1 px-2 text-right">Doanh thu thuần</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(r => (
-                    <tr key={r.thoigian}>
-                      <td className="border border-gray-300 py-1 px-2">{fmtDate(r.thoigian)}</td>
-                      <td className="border border-gray-300 py-1 px-2 text-right">{fmt(r.doanhthu)}</td>
-                      <td className="border border-gray-300 py-1 px-2 text-right">{fmt(r.giatri_tra)}</td>
-                      <td className="border border-gray-300 py-1 px-2 text-right">{fmt(r.doanhthu_thuan)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <table className="w-full border border-gray-300 text-xs">
-                <thead>
-                  <tr className="bg-green-100">
-                    <th className="border border-gray-300 py-1.5 px-2 text-left">Mã hàng</th>
-                    <th className="border border-gray-300 py-1.5 px-2 text-left">Tên hàng</th>
-                    <th className="border border-gray-300 py-1.5 px-2 text-center">SL Bán</th>
-                    <th className="border border-gray-300 py-1.5 px-2 text-center">Doanh thu</th>
-                    <th className="border border-gray-300 py-1.5 px-2 text-center">SL Trả</th>
-                    <th className="border border-gray-300 py-1.5 px-2 text-center">Giá trị trả</th>
-                    <th className="border border-gray-300 py-1.5 px-2 text-center">Doanh thu thuần</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(r => (
-                    <tr key={r.MASP}>
-                      <td className="border border-gray-300 py-1.5 px-2">{r.MASP}</td>
-                      <td className="border border-gray-300 py-1.5 px-2">{r.TENSP}</td>
-                      <td className="border border-gray-300 py-1.5 px-2 text-center">{r.sl_ban}</td>
-                      <td className="border border-gray-300 py-1.5 px-2 text-center">{fmt(r.doanhthu)}</td>
-                      <td className="border border-gray-300 py-1.5 px-2 text-center">{r.sl_tra}</td>
-                      <td className="border border-gray-300 py-1.5 px-2 text-center">{fmt(r.giatri_tra)}</td>
-                      <td className="border border-gray-300 py-1.5 px-2 text-center">{fmt(r.doanhthu_thuan)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* Controls (right) */}
-        <div className="w-56 flex-shrink-0 p-4 flex flex-col border-l border-gray-200">
-          <h3 className="font-bold text-base mb-4">In</h3>
-
-          <div className="space-y-3 flex-1">
-            {[
-              { label: 'Máy in', val: printer, set: setPrinter, placeholder: 'Chọn máy in', opts: ['Máy in mặc định', 'PDF'] },
-              { label: 'Khổ giấy', val: paperSize, set: setPaperSize, placeholder: 'Chọn khổ giấy', opts: ['A4', 'A5', 'Letter'] },
-              { label: 'Số trang', val: pages, set: setPages, placeholder: 'Chọn số trang', opts: ['Tất cả', 'Trang hiện tại'] },
-              { label: 'Màu', val: color, set: setColor, placeholder: 'Màu', opts: ['Màu', 'Đen trắng'] },
-            ].map(({ label, val, set, placeholder, opts }) => (
-              <div key={label}>
-                <label className="text-xs text-gray-500 block mb-1">{label}</label>
-                <select value={val} onChange={e => set(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-green-500">
-                  <option value="">{placeholder}</option>
-                  {opts.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-2 mt-4">
-            <button onClick={onClose}
-              className="flex-1 border border-gray-300 rounded py-2 text-sm hover:bg-gray-50">
-              Hủy
-            </button>
-            <button onClick={handlePrint}
-              className="flex-1 bg-green-600 text-white rounded py-2 text-sm font-medium hover:bg-green-700">
-              In
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }

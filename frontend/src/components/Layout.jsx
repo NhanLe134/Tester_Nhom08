@@ -22,7 +22,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       {/* Top bar: logo + icons */}
-      <div className="bg-white px-4 flex items-center justify-between h-11 border-b border-gray-200">
+      <div className="bg-white px-4 flex items-center justify-between h-11 border-b border-gray-200 no-print">
         <div className="flex items-center gap-2 font-bold text-base text-gray-800">
           <ShoppingCartIcon className="w-5 h-5 text-green-600" />
           <span>DemoApp</span>
@@ -68,7 +68,7 @@ export default function Layout() {
       </div>
 
       {/* Nav bar: green */}
-      <nav className="bg-green-600 px-4 flex items-center h-10">
+      <nav className="bg-green-600 px-4 flex items-center h-10 no-print">
         <div className="flex items-center gap-1 flex-1">
           {navItems.map(({ to, label, end }) => (
             <NavLink key={to} to={to} end={end}
@@ -94,7 +94,7 @@ export default function Layout() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-green-600 h-6" />
+      <footer className="bg-green-600 h-6 no-print" />
 
       {/* Overlay to close menus */}
       {(showUserMenu || showBell) && (

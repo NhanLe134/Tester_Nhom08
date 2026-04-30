@@ -56,6 +56,19 @@
 
 /* Print styles */
 @media print {
-  .no-print { display: none !important; }
-  body { background: white; }
+  .no-print { 
+    display: none !important; 
+  }
+  
+  body { 
+    background: white !important;
+  }
+  
+  /* Make print area full width */
+  .print-area {
+    max-width: 100% !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 20px !important;
+  }
 }
