@@ -38,6 +38,7 @@ app.use('/api/hanghoa', require('./routes/hanghoa'));
 app.use('/api/hoadonban', require('./routes/hoadonban'));
 app.use('/api/baocao', require('./routes/baocao'));
 app.use('/api/taikhoan', require('./routes/taikhoan'));
+app.use('/api/seed', require('./routes/seed-products'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
