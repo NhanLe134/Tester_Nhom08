@@ -115,8 +115,13 @@ function ProductModal({ mode, product, onClose, onSaved }) {
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <label className="block text-base font-bold text-gray-800 mb-2">Số lượng tồn</label>
-                    <input type="number" className="w-full border border-gray-100 bg-gray-50 text-gray-700 rounded-lg px-4 py-2 text-sm cursor-not-allowed focus:outline-none" 
-                      value={form.SL_TON} disabled placeholder="0" />
+                    {mode === 'edit' ? (
+                      <input type="number" className="w-full border border-gray-100 bg-gray-50 text-gray-700 rounded-lg px-4 py-2 text-sm cursor-not-allowed focus:outline-none" 
+                        value={form.SL_TON} disabled placeholder="0" />
+                    ) : (
+                      <input type="number" className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-green-100 outline-none" 
+                        placeholder="0" {...f('SL_TON')} />
+                    )}
                   </div>
                   <div>
                     <label className="block text-base font-bold text-gray-800 mb-2">Định mức tồn tối thiểu</label>
