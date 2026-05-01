@@ -294,7 +294,7 @@ export default function HangHoa() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState({ 'Đang bán': true, 'Ngừng bán': false });
+  const [filterStatus, setFilterStatus] = useState({ 'Đang bán': true, 'Ngừng kinh doanh': false });
   const [filterTonkho, setFilterTonkho] = useState('');
   const [modal, setModal] = useState(null); // {type: 'create'|'edit'|'delete', product?}
   const [expandedId, setExpandedId] = useState(null);
@@ -386,7 +386,7 @@ export default function HangHoa() {
                 Đang bán
               </label>
               <label className="flex items-center gap-3 text-sm cursor-pointer text-gray-600 hover:text-gray-900 transition-colors">
-                <input type="checkbox" checked={filterStatus['Ngừng bán']} onChange={() => toggleStatus('Ngừng bán')}
+                <input type="checkbox" checked={filterStatus['Ngừng kinh doanh']} onChange={() => toggleStatus('Ngừng kinh doanh')}
                   className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer" />
                 Ngừng kinh doanh
               </label>
