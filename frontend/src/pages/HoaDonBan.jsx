@@ -384,6 +384,7 @@ export default function HoaDonBan() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [searchItem, setSearchItem] = useState('');
   const [expandedRow, setExpandedRow] = useState(null);
   const [filterStatus, setFilterStatus] = useState({ 'Hoàn thành': true, 'Đã hủy': false });
   const [filterPTTT, setFilterPTTT] = useState({ 'Tiền mặt': true, 'Chuyển khoản': true });
@@ -403,7 +404,7 @@ export default function HoaDonBan() {
       const statuses = Object.entries(filterStatus).filter(([, v]) => v).map(([k]) => k).join(',');
       const pttts = Object.entries(filterPTTT).filter(([, v]) => v).map(([k]) => k).join(',');
       const res = await api.get('/hoadonban', {
-        params: { page, limit: 15, search, trangthai: statuses, pttt: pttts, tungay, denngay }
+        params: { page, limit: 15, search, searchItem, trangthai: statuses, pttt: pttts, tungay, denngay }
       });
       setItems(res.data.items);
       setTotal(res.data.total);
@@ -412,7 +413,7 @@ export default function HoaDonBan() {
       setTotalAmount(sum);
     } catch { toast.error('Lỗi tải dữ liệu'); }
     finally { setLoading(false); }
-  }, [page, search, filterStatus, filterPTTT, tungay, denngay]);
+  }, [page, search, searchItem, filterStatus, filterPTTT, tungay, denngay]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -538,8 +539,8 @@ export default function HoaDonBan() {
                 <input
                   className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-400 mb-3"
                   placeholder="Theo mã hóa đơn, tên hàng, mã hàng"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  value={searchItem}
+                  onChange={e => setSearchItem(e.target.value)}
                   autoFocus
                 />
                 <div className="flex justify-end">

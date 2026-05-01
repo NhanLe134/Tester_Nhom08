@@ -21,12 +21,16 @@ router.get('/', auth, (req, res) => {
     denngay = ''
   } = req.query;
 
+  console.log('🔍 Search params:', { search, searchInvoice, searchItem });
+
   const offset = (parseInt(page) - 1) * parseInt(limit);
   let where = 'WHERE 1=1';
   const params = [];
 
   const invoiceKeyword = (searchInvoice || '').trim() || (searchItem ? '' : (search || '').trim());
   const itemKeyword = (searchItem || '').trim();
+
+  console.log('🔍 Keywords:', { invoiceKeyword, itemKeyword });
 
   if (invoiceKeyword) {
     where += ' AND MAHDB LIKE ?';
