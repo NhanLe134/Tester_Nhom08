@@ -18,7 +18,7 @@ async function generateMAHDB() {
 router.get('/', auth, async (req, res) => {
   try {
     const pool = getPool();
-    const { page = 1, limit = 15, search = '', trangthai = '', pttt = '', tungay = '', denngay = '' } = req.query;
+    const { page = 1, limit = 15, search = '', searchItem = '', trangthai = '', pttt = '', tungay = '', denngay = '' } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     let where = 'WHERE 1=1';
@@ -26,15 +26,32 @@ router.get('/', auth, async (req, res) => {
     let paramIndex = 1;
 
     if (search) {
-      where += ` AND mahdb LIKE $${paramIndex}`;
+      where += ` AND (hdb.mahdb LIKE $${paramIndex} OR EXISTS (
+        SELECT 1 FROM ct_hoadonban ct 
+        JOIN hanghoa hh ON ct.masp = hh.masp 
+        WHERE ct.mahdb = hdb.mahdb 
+        AND (ct.masp LIKE $${paramIndex} OR hh.tensp ILIKE $${paramIndex})
+      ))`;
       params.push(`%${search}%`);
       paramIndex++;
     }
+
+    if (searchItem) {
+      where += ` AND EXISTS (
+        SELECT 1 FROM ct_hoadonban ct 
+        JOIN hanghoa hh ON ct.masp = hh.masp 
+        WHERE ct.mahdb = hdb.mahdb 
+        AND (ct.masp LIKE $${paramIndex} OR hh.tensp ILIKE $${paramIndex})
+      )`;
+      params.push(`%${searchItem}%`);
+      paramIndex++;
+    }
+
     if (trangthai) {
       const statuses = trangthai.split(',').map(s => s.trim()).filter(Boolean);
       if (statuses.length > 0) {
         const placeholders = statuses.map((_, i) => `$${paramIndex + i}`).join(',');
-        where += ` AND trangthai_hdb IN (${placeholders})`;
+        where += ` AND hdb.trangthai_hdb IN (${placeholders})`;
         params.push(...statuses);
         paramIndex += statuses.length;
       }
@@ -43,29 +60,29 @@ router.get('/', auth, async (req, res) => {
       const methods = pttt.split(',').map(s => s.trim()).filter(Boolean);
       if (methods.length > 0) {
         const placeholders = methods.map((_, i) => `$${paramIndex + i}`).join(',');
-        where += ` AND pttt IN (${placeholders})`;
+        where += ` AND hdb.pttt IN (${placeholders})`;
         params.push(...methods);
         paramIndex += methods.length;
       }
     }
     if (tungay) {
-      where += ` AND DATE(ngayban) >= $${paramIndex}`;
+      where += ` AND DATE(hdb.ngayban) >= $${paramIndex}`;
       params.push(tungay);
       paramIndex++;
     }
     if (denngay) {
-      where += ` AND DATE(ngayban) <= $${paramIndex}`;
+      where += ` AND DATE(hdb.ngayban) <= $${paramIndex}`;
       params.push(denngay);
       paramIndex++;
     }
 
-    const countResult = await pool.query(`SELECT COUNT(*) as cnt FROM hoadonban ${where}`, params);
+    const countResult = await pool.query(`SELECT COUNT(*) as cnt FROM hoadonban hdb ${where}`, params);
     const total = parseInt(countResult.rows[0].cnt);
 
     const itemsResult = await pool.query(
       `SELECT hdb.*, 
               (SELECT string_agg(masp, ', ') FROM ct_hoadonban WHERE mahdb = hdb.mahdb) as mahang_list
-       FROM hoadonban hdb ${where} ORDER BY ngayban DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+       FROM hoadonban hdb ${where} ORDER BY hdb.ngayban DESC, hdb.mahdb DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...params, parseInt(limit), offset]
     );
 

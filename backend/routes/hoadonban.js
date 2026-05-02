@@ -78,7 +78,7 @@ router.get('/', auth, (req, res) => {
   const items = db.prepare(`
     SELECT * FROM HOADONBAN
     ${where}
-    ORDER BY ROWID DESC
+    ORDER BY NGAYBAN DESC, MAHDB DESC
     LIMIT ? OFFSET ?
   `).all(...params, parseInt(limit), offset);
 
