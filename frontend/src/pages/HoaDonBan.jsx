@@ -416,7 +416,6 @@ export default function HoaDonBan() {
       const sum = res.data.totalAmount ?? res.data.items.reduce((acc, i) => acc + (parseFloat(i.TONGTIENHANG_BAN) || 0), 0);
       setTotalAmount(sum);
       if ((search || searchItem) && res.data.items.length === 0) {
-        toast.error('Không tìm thấy giao dịch phù hợp');
       }
     } catch { toast.error('Xảy ra lỗi. Không thể lọc danh sách'); }
     finally { setLoading(false); }
@@ -629,20 +628,19 @@ export default function HoaDonBan() {
                   let start = Math.max(1, Number(page) - 2);
                   let end = Math.min(totalPages, start + 4);
                   if (end - start < 4) start = Math.max(1, end - 4);
-                  
+
                   const pages = [];
                   for (let i = start; i <= end; i++) pages.push(i);
-                  
+
                   return pages.map(p => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => setPage(p)}
-                      className={`px-3 py-1 rounded border text-sm transition-colors ${
-                        Number(page) === p
+                      className={`px-3 py-1 rounded border text-sm transition-colors ${Number(page) === p
                           ? 'bg-green-600 text-white border-green-600 font-bold'
                           : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       {p}
                     </button>
