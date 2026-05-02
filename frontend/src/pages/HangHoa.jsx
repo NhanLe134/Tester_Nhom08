@@ -6,7 +6,18 @@ import {
   ArrowPathIcon, CheckIcon, ArchiveBoxArrowDownIcon
 } from '@heroicons/react/24/outline';
 
-const fmtDate = (s) => s ? new Date(String(s).replace(' ', 'T')).toLocaleString('vi-VN') : '';
+const fmtDate = (s) => {
+  if (!s) return '';
+  // Parse datetime string directly without timezone conversion
+  // Format: "YYYY-MM-DD HH:MM:SS" -> "DD/MM/YYYY HH:MM:SS"
+  const str = String(s);
+  const match = str.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if (match) {
+    const [, year, month, day, hour, minute, second] = match;
+    return `${day}/${month}/${year} ${hour}:${minute}:${second}`;
+  }
+  return str;
+};
 
 const EMPTY_FORM = { TENSP: '', DVT: 'Cái', GIABAN: '', GIANHAP: '', SL_TON: '', DMUC_TON_MIN: '', TRANGTHAI_SP: 'Đang bán' };
 

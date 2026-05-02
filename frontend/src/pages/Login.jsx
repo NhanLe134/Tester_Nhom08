@@ -79,6 +79,58 @@ export default function Login() {
     setResetErrors({});
   };
 
+  const handleSendOTP = async () => {
+    if (!forgotData.sdt) {
+      setResetErrors({ sdt: 'Vui lòng nhập số điện thoại' });
+      return;
+    }
+    setForgotLoading(true);
+    setResetErrors({});
+    try {
+      const res = await api.post('/auth/forgot-password', { sdt: forgotData.sdt });
+      toast.success(res.data.message);
+      setForgotData(d => ({ ...d, otp_demo: res.data.otp_demo }));
+      setForgotStep(2);
+      startCountdown();
+    } catch (err) {
+      setResetErrors({ sdt: err.response?.data?.message || 'Có lỗi xảy ra' });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const { sdt, otp, matkhau_moi, xacnhan } = forgotData;
+    if (!otp) {
+      setResetErrors({ otp: 'Vui lòng nhập mã OTP' });
+      return;
+    }
+    if (!matkhau_moi) {
+      setResetErrors({ matkhau_moi: 'Vui lòng nhập mật khẩu mới' });
+      return;
+    }
+    if (!xacnhan) {
+      setResetErrors({ xacnhan: 'Vui lòng xác nhận mật khẩu' });
+      return;
+    }
+    setForgotLoading(true);
+    setResetErrors({});
+    try {
+      await api.post('/auth/reset-password', { sdt, matkhau_moi, xacnhan });
+      toast.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+      closeForgot();
+    } catch (err) {
+      const errData = err.response?.data;
+      if (errData?.field) {
+        setResetErrors({ [errData.field]: errData.message });
+      } else {
+        setResetErrors({ general: errData?.message || 'Có lỗi xảy ra' });
+      }
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #f0f4e8 0%, #fdf0f0 50%, #f0f4e8 100%)' }}>
@@ -175,11 +227,126 @@ export default function Login() {
       {/* Forgot Modal */}
       {showForgot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeForgot}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            {/* Nội dung Modal - Nhớ dùng type="button" cho các nút trong này để tránh reload */}
-            <h3 className="text-lg font-bold mb-4">Quên mật khẩu</h3>
-            {/* ... các trường nhập OTP của bạn ... */}
-            <button type="button" onClick={closeForgot} className="mt-4 text-gray-500">Đóng</button>
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold mb-6 text-gray-800">Quên mật khẩu</h3>
+            
+            {forgotStep === 1 && (
+              <div className="space-y-4">
+                <p className="text-gray-600 text-sm mb-4">Nhập số điện thoại đã đăng ký để nhận mã OTP.</p>
+                <div>
+                  <div className="relative">
+                    <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Nhập số điện thoại"
+                      value={forgotData.sdt}
+                      onChange={e => setForgotData(d => ({ ...d, sdt: e.target.value }))}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-400 transition"
+                    />
+                  </div>
+                  {resetErrors.sdt && <p className="text-red-500 text-sm mt-1">{resetErrors.sdt}</p>}
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeForgot}
+                    className="flex-1 px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendOTP}
+                    disabled={forgotLoading}
+                    className="flex-1 px-6 py-3 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition disabled:opacity-60"
+                  >
+                    {forgotLoading ? 'Đang gửi...' : 'Nhận OTP'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {forgotStep === 2 && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Mã OTP demo:</strong> <span className="font-mono font-bold">{forgotData.otp_demo}</span>
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    (Trong môi trường thực tế, mã này sẽ được gửi qua SMS)
+                  </p>
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Nhập mã OTP"
+                    value={forgotData.otp}
+                    onChange={e => setForgotData(d => ({ ...d, otp: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-400 transition"
+                  />
+                  {resetErrors.otp && <p className="text-red-500 text-sm mt-1">{resetErrors.otp}</p>}
+                </div>
+
+                <div>
+                  <input
+                    type="password"
+                    placeholder="Mật khẩu mới"
+                    value={forgotData.matkhau_moi}
+                    onChange={e => setForgotData(d => ({ ...d, matkhau_moi: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-400 transition"
+                  />
+                  {resetErrors.matkhau_moi && <p className="text-red-500 text-sm mt-1">{resetErrors.matkhau_moi}</p>}
+                </div>
+
+                <div>
+                  <input
+                    type="password"
+                    placeholder="Xác nhận mật khẩu"
+                    value={forgotData.xacnhan}
+                    onChange={e => setForgotData(d => ({ ...d, xacnhan: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-400 transition"
+                  />
+                  {resetErrors.xacnhan && <p className="text-red-500 text-sm mt-1">{resetErrors.xacnhan}</p>}
+                </div>
+
+                {resetErrors.general && (
+                  <p className="text-red-500 text-sm text-center">{resetErrors.general}</p>
+                )}
+
+                <div className="flex items-center justify-between text-sm text-gray-600 pt-2">
+                  {countdown > 0 ? (
+                    <span>Gửi lại sau {countdown}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOTP}
+                      className="text-green-600 hover:text-green-700 font-semibold"
+                    >
+                      Gửi lại OTP
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeForgot}
+                    className="flex-1 px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetPassword}
+                    disabled={forgotLoading}
+                    className="flex-1 px-6 py-3 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition disabled:opacity-60"
+                  >
+                    {forgotLoading ? 'Đang xử lý...' : 'Gửi yêu cầu'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
